@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>The Prize Path Challenge</title>
     <style>
         /* CORE STYLES */
@@ -19,6 +19,7 @@
             font-family: 'Arial', sans-serif;
             text-align: center;
             transition: background-color 0.3s ease;
+            touch-action: none; /* Prevents pull-to-refresh on mobile */
         }
 
         /* IMMERSIVE FULL-SCREEN MODE */
@@ -27,7 +28,6 @@
             padding-top: 0 !important;
         }
 
-        /* NEW FIX: CENTERING AND SIZING */
         #main-wrapper {
             width: 95%;
             max-width: 450px;
@@ -45,14 +45,15 @@
             position: fixed !important;
             top: 0; left: 0;
             width: 100vw !important;
-            height: 100vh !important;
+            height: 100vh !important; /* Fallback */
+            height: 100dvh !important; /* MOBILE FIX 2: Dynamic Viewport Height for iOS Safari */
             background-color: #111111;
             display: flex;
             justify-content: center;
             align-items: center; 
             z-index: 1000;
-            max-width: min(90vw, 500px) !important;
-            max-height: min(90vh, 800px) !important; 
+            max-width: 100vw !important; 
+            max-height: 100dvh !important; 
         }
 
         .maximized-game h1 { display: none; }
@@ -122,6 +123,8 @@
             padding: 0;
             margin: 0;
             font-size: 1.1em; 
+            user-select: none; /* Prevents text highlighting on rapid mobile taps */
+            -webkit-user-select: none;
         }
 
         /* --- MESSAGE BOX / MODAL STYLING --- */
@@ -130,395 +133,4 @@
             top: 0; left: 0; right: 0; bottom: 0; 
             background: rgba(0, 0, 0, 0.85); 
             display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000; 
-        }
-        #modal-content {
-            background: #111111;
-            padding: 25px;
-            border-radius: 12px;
-            border: 4px solid #ff69b4;
-            box-shadow: 0 0 30px rgba(255, 105, 180, 0.9);
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-        }
-
-        @media (max-width: 600px) {
-            .desktop-instructions { display: none; }
-            #main-wrapper { max-width: 320px; margin: 5px auto; }
-            #modal-content { max-width: 90%; }
-        }
-    </style>
-</head>
-<body>
-    
-    <div id="main-wrapper">
-        <h1>The PRIZE PATH Game!</h1>
-        <p class="desktop-instructions">Use arrow keys or WASD to navigate and collect the Prize Tokens (<img id="logo-preview" style="height: 20px; vertical-align: middle;" src="https://images.squarespace-cdn.com/content/v1/613789a32c183f627fde9bea/d40bfa39-bc30-4566-9cfa-3abd53d4798f/Artboard+1+copy.png?format=2500w" alt="Logo">)!</p>
-
-        <div id="game-container">
-            <div id="game-info">
-                <span id="score-display">Score: 0</span>
-                <span id="speed-display">Speed: 1x</span>
-            </div>
-            <canvas id="gameCanvas"></canvas>
-        </div>
-
-        <div id="mobile-controls">
-            <button id="up-btn" style="grid-area: up;">↑</button>
-            <button id="left-btn" style="grid-area: left;">←</button>
-            <div id="center-pad" style="grid-area: center;"></div>
-            <button id="right-btn" style="grid-area: right;">→</button>
-            <button id="down-btn" style="grid-area: down;">↓</button>
-        </div>
-        
-        <div class="control-buttons">
-            <button id="start-button">Start Game</button>
-            <button id="pause-button" style="display:none;">Pause</button>
-            <button id="maximize-button">Maximize</button>
-        </div>
-    </div>
-
-    <div id="message-box">
-        <div id="modal-content">
-            <h2 id="modal-title">GAME OVER!</h2>
-            <p style="font-size: 1.1em;">Final Score: <span id="modal-score">0</span></p>
-            <p id="reward-message" style="margin-bottom: 20px;">Play again to beat your best score!</p>
-            <button id="play-again-btn">Play Again</button>
-        </div>
-    </div>
-
-    <script>
-        // Use DOMContentLoaded to ensure elements exist before referencing them
-        window.addEventListener('DOMContentLoaded', () => {
-            const mainWrapper = document.getElementById('main-wrapper');
-            const canvas = document.getElementById('gameCanvas');
-            const ctx = canvas.getContext('2d');
-            const scoreDisplay = document.getElementById('score-display');
-            const speedDisplay = document.getElementById('speed-display');
-            const startButton = document.getElementById('start-button');
-            const pauseButton = document.getElementById('pause-button');
-            const maximizeButton = document.getElementById('maximize-button');
-            const upBtn = document.getElementById('up-btn');
-            const downBtn = document.getElementById('down-btn');
-            const leftBtn = document.getElementById('left-btn');
-            const rightBtn = document.getElementById('right-btn');
-            const messageBox = document.getElementById('message-box');
-            const modalScore = document.getElementById('modal-score');
-            const rewardMessage = document.getElementById('reward-message');
-            const playAgainBtn = document.getElementById('play-again-btn');
-
-            const initialGridSize = 20;
-            let gridSize = 20;
-            let tileCount = initialGridSize;
-            const initialSpeed = 150; 
-            const LOGO_URL = "https://images.squarespace-cdn.com/content/v1/613789a32c183f627fde9bea/d40bfa39-bc30-4566-9cfa-3abd53d4798f/Artboard+1+copy.png?format=2500w"; 
-            const prizeSizeFactor = 3; 
-            
-            let snake = [];
-            let velocityX = 1;
-            let velocityY = 0;
-            let prize = {}; 
-            let score = 0;
-            let gameSpeed = initialSpeed;
-            let isPlaying = false;
-            let gameInterval;
-            let nextDirection = { x: 1, y: 0 };
-            let isGamePaused = false;
-            let assetsLoaded = false;
-            let isInputProcessed = false; 
-            let isMaximized = false; 
-            let particles = []; 
-
-            const prizeImage = new Image();
-            prizeImage.onload = () => {
-                assetsLoaded = true;
-                const preview = document.getElementById('logo-preview');
-                if(preview) preview.src = LOGO_URL;
-                initializeGameSize(); 
-                resetGame();
-                drawGame();
-            };
-            prizeImage.onerror = () => {
-                assetsLoaded = false;
-                console.error("Failed to load custom logo. Using default pink square.");
-                initializeGameSize(); 
-                resetGame();
-                drawGame();
-            };
-
-            function initializeGameSize() {
-                let containerWidth;
-                if (isMaximized) {
-                    const availableWidth = window.innerWidth;
-                    const availableHeight = window.innerHeight;
-                    const targetWrapperWidth = Math.min(availableWidth * 0.9, 500);
-                    const maxCanvasSize = Math.min(targetWrapperWidth, availableHeight - 150);
-                    containerWidth = maxCanvasSize;
-                } else {
-                    containerWidth = mainWrapper.clientWidth > 16 ? mainWrapper.clientWidth - 16 : 300; 
-                }
-                containerWidth = Math.floor(containerWidth / tileCount) * tileCount;
-                canvas.width = containerWidth;
-                canvas.height = containerWidth;
-                gridSize = canvas.width / tileCount;
-            }
-
-            function resetGame() {
-                snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
-                velocityX = 1;
-                velocityY = 0;
-                score = 0;
-                gameSpeed = initialSpeed;
-                isGamePaused = false;
-                scoreDisplay.textContent = 'Score: 0';
-                speedDisplay.textContent = 'Speed: 1x';
-                messageBox.style.display = 'none';
-                particles = []; 
-                placePrize();
-            }
-
-            class Particle {
-                constructor(x, y, vx, vy, color, size, duration) {
-                    this.x = x; this.y = y; this.vx = vx; this.vy = vy;
-                    this.color = color; this.size = size; this.alpha = 1;
-                    this.life = duration; this.initialLife = duration;
-                    this.type = Math.random() < 0.5 ? 'rect' : 'line'; 
-                    this.rotation = Math.random() * Math.PI * 2; 
-                    this.rotationSpeed = (Math.random() - 0.5) * 0.4; 
-                }
-                update() {
-                    this.x += this.vx; this.y += this.vy;
-                    this.alpha = this.life / this.initialLife;
-                    this.life--; this.rotation += this.rotationSpeed;
-                }
-                draw() {
-                    if (this.life <= 0) return;
-                    ctx.save();
-                    ctx.translate(this.x, this.y);
-                    ctx.rotate(this.rotation);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                    ctx.lineWidth = 1;
-                    if (this.type === 'rect') {
-                        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
-                    } else { 
-                        ctx.beginPath();
-                        ctx.moveTo(-this.size / 2, 0); ctx.lineTo(this.size / 2, 0); ctx.stroke();
-                    }
-                    ctx.restore();
-                }
-            }
-
-            function gameLoop() {
-                if (isGamePaused) {
-                    gameInterval = setTimeout(gameLoop, gameSpeed);
-                    return;
-                }
-                isInputProcessed = false; 
-                velocityX = nextDirection.x; velocityY = nextDirection.y;
-                const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
-
-                if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) return endGame();
-                for (let i = 1; i < snake.length; i++) {
-                    if (head.x === snake[i].x && head.y === snake[i].y) return endGame();
-                }
-                snake.unshift(head);
-
-                particles = particles.filter(p => p.life > 0);
-                particles.forEach(p => p.update());
-
-                if (prize.collected) {
-                    prize.fadeAlpha -= 0.4; 
-                    if (prize.fadeAlpha <= 0) {
-                        prize.collected = false;
-                        placePrize();
-                    }
-                }
-
-                if (!prize.collected && head.x >= prize.x && head.x < prize.x + prizeSizeFactor && head.y >= prize.y && head.y < prize.y + prizeSizeFactor) {
-                    prize.collected = true; prize.fadeAlpha = 1;    
-                    const centerX = prize.x * gridSize + (gridSize * prizeSizeFactor / 2);
-                    const centerY = prize.y * gridSize + (gridSize * prizeSizeFactor / 2);
-                    const numParticles = 20; 
-                    for (let i = 0; i < numParticles; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const speed = (Math.random() * 3) + 1.0; 
-                        const size = (Math.random() * 8) + 2; 
-                        const vX = Math.cos(angle) * speed;
-                        const vY = Math.sin(angle) * speed + (Math.random() * 0.3); 
-                        particles.push(new Particle(centerX, centerY, vX, vY, {r: 255, g: 255, b: 255}, size, 5 + Math.random() * 7)); 
-                    }
-                    score++;
-                    scoreDisplay.textContent = `Score: ${score}`;
-                    if (score % 3 === 0 && gameSpeed > 50) {
-                        gameSpeed -= 5;
-                        clearInterval(gameInterval);
-                        gameInterval = setTimeout(gameLoop, gameSpeed); 
-                        speedDisplay.textContent = `Speed: x${(initialSpeed / gameSpeed).toFixed(1)}`;
-                        return;
-                    }
-                } else {
-                    snake.pop();
-                }
-                drawGame();
-                gameInterval = setTimeout(gameLoop, gameSpeed);
-            }
-
-            function drawGame() {
-                ctx.fillStyle = '#333333';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                if (!prize.collected || prize.fadeAlpha > 0) {
-                    if (assetsLoaded && prizeImage.complete && prizeImage.naturalHeight !== 0) {
-                        ctx.save();
-                        ctx.globalAlpha = prize.fadeAlpha !== undefined ? prize.fadeAlpha : 1;
-                        ctx.drawImage(prizeImage, prize.x * gridSize, prize.y * gridSize, gridSize * prizeSizeFactor, gridSize * prizeSizeFactor);
-                        ctx.restore();
-                    } else {
-                        ctx.fillStyle = `rgba(255, 105, 180, ${prize.fadeAlpha !== undefined ? prize.fadeAlpha : 1})`;
-                        ctx.fillRect(prize.x * gridSize, prize.y * gridSize, gridSize * prizeSizeFactor, gridSize * prizeSizeFactor);
-                    }
-                }
-                particles.forEach(p => p.draw());
-                snake.forEach((segment, index) => {
-                    ctx.fillStyle = index === 0 ? '#ff69b4' : 'white';
-                    ctx.beginPath();
-                    ctx.roundRect(segment.x * gridSize, segment.y * gridSize, gridSize - 1, gridSize - 1, 3);
-                    ctx.fill();
-                });
-            }
-
-            function placePrize() {
-                let newX, newY, onSnake;
-                let collisionBuffer = prizeSizeFactor - 1; 
-                do {
-                    newX = Math.floor(Math.random() * (tileCount - collisionBuffer));
-                    newY = Math.floor(Math.random() * (tileCount - collisionBuffer));
-                    onSnake = false;
-                    for (let i = 0; i < snake.length; i++) {
-                        if (snake[i].x >= newX && snake[i].x < newX + prizeSizeFactor && snake[i].y >= newY && snake[i].y < newY + prizeSizeFactor) {
-                            onSnake = true; break;
-                        }
-                    }
-                } while (onSnake);
-                prize = { x: newX, y: newY, collected: false, fadeAlpha: 1 }; 
-            }
-
-            function endGame() {
-                isPlaying = false;
-                clearTimeout(gameInterval); 
-                modalScore.textContent = score;
-                messageBox.style.display = 'flex';
-                let rewardText;
-                if (score >= 10) rewardText = "🎉 GRAND PRIZE UNLOCKED! You earned a 20% OFF coupon!";
-                else if (score >= 5) rewardText = "🎁 GOOD RUN! You earned Free Shipping on your next order!";
-                else rewardText = "Better luck next time! Play again to beat your best score!";
-                rewardMessage.textContent = rewardText;
-                startButton.style.display = 'inline-block';
-                pauseButton.style.display = 'none';
-            }
-
-            function toggleMaximize() {
-                if (!document.fullscreenElement) {
-                    if (mainWrapper.requestFullscreen) {
-                        mainWrapper.requestFullscreen().catch(err => fallbackMaximize());
-                    } else {
-                        fallbackMaximize();
-                    }
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                }
-            }
-
-            function fallbackMaximize() {
-                isMaximized = !isMaximized;
-                mainWrapper.classList.toggle('maximized-game', isMaximized);
-                maximizeButton.textContent = isMaximized ? 'Exit Full Screen' : 'Maximize';
-                document.body.style.overflow = isMaximized ? 'hidden' : 'auto';
-                initializeGameSize(); drawGame();
-            }
-
-            document.addEventListener("fullscreenchange", () => {
-                const isFS = !!document.fullscreenElement;
-                mainWrapper.classList.toggle('maximized-game', isFS);
-                document.body.classList.toggle('fullscreen-mode', isFS);
-                maximizeButton.textContent = isFS ? 'Exit Full Screen' : 'Maximize';
-                isMaximized = isFS;
-                initializeGameSize(); drawGame();
-            });
-
-            function updateDirection(newVX, newVY) {
-                if (!isPlaying || isGamePaused) return;
-                if (isInputProcessed) return;
-                if ( (newVX !== 0 && newVX === -nextDirection.x) || (newVY !== 0 && newVY === -nextDirection.y) ) return;
-                if (newVX !== nextDirection.x || newVY !== nextDirection.y) {
-                    nextDirection = { x: newVX, y: newVY };
-                    isInputProcessed = true; 
-                }
-            }
-
-            document.addEventListener('keydown', (e) => {
-                const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 's', 'a', 'd'];
-                if (allowedKeys.includes(e.key) && isPlaying && !isGamePaused) e.preventDefault(); 
-                switch (e.key) {
-                    case 'ArrowUp': case 'w': updateDirection(0, -1); break;
-                    case 'ArrowDown': case 's': updateDirection(0, 1); break;
-                    case 'ArrowLeft': case 'a': updateDirection(-1, 0); break;
-                    case 'ArrowRight': case 'd': updateDirection(1, 0); break;
-                }
-            });
-
-            function addButtonFeedback(button) {
-                const setActive = () => { button.classList.add('button-active'); };
-                const removeActive = () => { setTimeout(() => { button.classList.remove('button-active'); }, 80); };
-                button.addEventListener('mousedown', setActive);
-                button.addEventListener('mouseup', removeActive);
-                button.addEventListener('touchstart', setActive, {passive: true});
-                button.addEventListener('touchend', removeActive);
-                button.addEventListener('touchcancel', removeActive);
-            }
-            
-            [upBtn, downBtn, leftBtn, rightBtn, startButton, pauseButton, playAgainBtn, maximizeButton].forEach(addButtonFeedback);
-            
-            upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, -1); }, {passive: false});
-            downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, 1); }, {passive: false});
-            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(-1, 0); }, {passive: false});
-            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(1, 0); }, {passive: false});
-
-            startButton.addEventListener('click', () => {
-                if (!isPlaying) {
-                    isPlaying = true;
-                    resetGame();
-                    startButton.style.display = 'none';
-                    pauseButton.style.display = 'inline-block';
-                    gameLoop(); 
-                }
-            });
-
-            pauseButton.addEventListener('click', () => {
-                if (isPlaying) {
-                    isGamePaused = !isGamePaused;
-                    pauseButton.textContent = isGamePaused ? 'Resume' : 'Pause';
-                    if (!isGamePaused) gameLoop(); 
-                }
-            });
-            
-            maximizeButton.addEventListener('click', toggleMaximize);
-            playAgainBtn.addEventListener('click', () => {
-                messageBox.style.display = 'none';
-                resetGame();
-                drawGame();
-            });
-
-            window.addEventListener('resize', () => {
-                initializeGameSize(); drawGame();
-            });
-
-            // Start the loading process
-            prizeImage.src = LOGO_URL; 
-        });
-    </script>
-</body>
-</html>
+            justify
