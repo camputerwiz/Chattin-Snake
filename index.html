@@ -18,12 +18,18 @@
             color: #ffffff;
             font-family: 'Arial', sans-serif;
             text-align: center;
+            transition: background-color 0.3s ease;
         }
 
-        /* NEW FIX: CENTERING AND SIZING */
+        /* IMMERSIVE FULL-SCREEN MODE */
+        .fullscreen-mode {
+            background-color: #000000 !important;
+            padding-top: 0 !important;
+        }
+
         #main-wrapper {
             width: 95%; 
-            max-width: 450px; /* Standard desktop size */
+            max-width: 450px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -33,39 +39,22 @@
             transition: all 0.3s ease;
         }
         
-        /* --- MAXIMIZED VIEW STATE (Fullscreen effect) --- */
         .maximized-game {
             position: fixed !important;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100vw !important;
             height: 100vh !important;
-            max-width: 100vw !important;
             background-color: #111111;
-            padding: 0;
-            margin: 0 !important; 
-            
-            /* FLEXBOX CENTERING FIX */
-            display: flex; /* Crucial for internal centering */
+            display: flex;
             justify-content: center; 
             align-items: center; 
-            
             z-index: 1000;
-            
-            /* CRITICAL FIX: Ensure maximized content never exceeds a playable size */
             max-width: min(90vw, 500px) !important; 
             max-height: min(90vh, 800px) !important; 
         }
-        .maximized-game #game-container {
-            flex-grow: 0; 
-            margin: 10px;
-            /* Max width of container inside maximized wrapper */
-            max-width: 95%;
-            max-height: 95%;
-        }
-        /* End Maximize View State */
 
-        /* Game Board (Canvas) Styling */
+        .maximized-game h1 { display: none; }
+
         #game-container {
             width: 100%;
             border: 8px solid #ff69b4;
@@ -75,83 +64,30 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: border-color 0.1s ease-out, box-shadow 0.1s ease-out;
         }
 
         canvas { display: block; background-color: #333333; }
         
-        #game-info {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            padding: 10px 0;
-            font-size: 1.2em;
-        }
-        
-        /* --- General Button Styling --- */
         .control-buttons { margin-top: 15px; }
-        .control-buttons button, #mobile-controls button, #message-box button {
+        .control-buttons button {
             background-color: #ff69b4;
             color: #111111;
             border: none;
-            padding: 8px 18px; 
-            margin: 3px; 
-            border-radius: 5px;
+            padding: 12px 24px; 
+            margin: 5px; 
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.95em; 
             font-weight: bold;
-            transition: background-color 0.1s ease-out;
-        }
-        
-        .button-active {
-            background-color: white !important; 
-            color: #ff69b4 !important;
+            text-transform: uppercase;
         }
 
-        /* --- Mobile D-Pad Styling --- */
         #mobile-controls {
             display: grid;
             grid-template-areas: ". up ." "left center right" ". down .";
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px; /* Spacing between buttons */
+            gap: 10px;
             width: 180px; 
             margin-top: 20px; 
-        }
-        #mobile-controls button {
-            width: 100%;
-            height: 40px; /* Target size */
-            padding: 0;
-            margin: 0;
-            font-size: 1.1em; 
-        }
-
-        /* --- MESSAGE BOX / MODAL STYLING (Simplified for Game Over) --- */
-        #message-box {
-            position: fixed; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            background: rgba(0, 0, 0, 0.85); 
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 200; 
-        }
-        #modal-content {
-            background: #111111;
-            padding: 25px;
-            border-radius: 12px;
-            border: 4px solid #ff69b4;
-            box-shadow: 0 0 30px rgba(255, 105, 180, 0.9);
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-        }
-
-        /* Mobile Viewport Optimizations */
-        @media (max-width: 600px) {
-            .desktop-instructions { display: none; }
-            #main-wrapper { max-width: 320px; margin: 5px auto; }
-            #modal-content { max-width: 90%; }
-            .maximized-game h1 { display: none; } 
         }
     </style>
 </head>
@@ -159,505 +95,53 @@
     
     <div id="main-wrapper">
         <h1>The PRIZE PATH Game!</h1>
-        <p class="desktop-instructions">Use arrow keys or WASD to navigate and collect the Prize Tokens (<img id="logo-preview" style="height: 20px; vertical-align: middle;" src="https://images.squarespace-cdn.com/content/v1/613789a32c183f627fde9bea/d40bfa39-bc30-4566-9cfa-3abd53d4798f/Artboard+1+copy.png?format=2500w" alt="Logo">)!</p>
-
         <div id="game-container">
-            <div id="game-info">
-                <span id="score-display">Score: 0</span>
-                <span id="speed-display">Speed: 1x</span>
-            </div>
             <canvas id="gameCanvas"></canvas>
         </div>
 
         <div id="mobile-controls">
-            <button id="up-btn" style="grid-area: up;" aria-label="Move Up">↑</button>
-            <button id="left-btn" style="grid-area: left;" aria-label="Move Left">←</button>
-            <div id="center-pad" style="grid-area: center;"></div>
-            <button id="right-btn" style="grid-area: right;" aria-label="Move Right">→</button>
-            <button id="down-btn" style="grid-area: down;" aria-label="Move Down">↓</button>
+            <button id="up-btn" style="grid-area: up;">↑</button>
+            <button id="left-btn" style="grid-area: left;">←</button>
+            <div style="grid-area: center;"></div>
+            <button id="right-btn" style="grid-area: right;">→</button>
+            <button id="down-btn" style="grid-area: down;">↓</button>
         </div>
+
         <div class="control-buttons">
             <button id="start-button">Start Game</button>
-            <button id="pause-button" style="display:none;">Pause</button>
             <button id="maximize-button">Maximize</button>
         </div>
     </div>
 
-
-    <div id="message-box">
-        <div id="modal-content">
-            <h2 id="modal-title">GAME OVER!</h2>
-            <p style="font-size: 1.1em;">Final Score: <span id="modal-score">0</span></p>
-            <p id="reward-message" style="margin-bottom: 20px;">Play again to beat your best score!</p>
-            <button id="play-again-btn">Play Again</button>
-        </div>
-    </div>
-
     <script>
-        // --- DOM Elements ---
         const mainWrapper = document.getElementById('main-wrapper');
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score-display');
-        const speedDisplay = document.getElementById('speed-display');
-        const startButton = document.getElementById('start-button');
-        const pauseButton = document.getElementById('pause-button');
         const maximizeButton = document.getElementById('maximize-button');
-        const upBtn = document.getElementById('up-btn');
-        const downBtn = document.getElementById('down-btn');
-        const leftBtn = document.getElementById('left-btn');
-        const rightBtn = document.getElementById('right-btn');
-        const messageBox = document.getElementById('message-box');
-        const modalScore = document.getElementById('modal-score');
-        const rewardMessage = document.getElementById('reward-message');
-        const playAgainBtn = document.getElementById('play-again-btn');
-        const gameContainer = document.getElementById('game-container'); 
-
-        // --- GAME CONSTANTS ---
-        const initialGridSize = 20;
-        let gridSize = 20;
-        let tileCount = initialGridSize;
-        const initialSpeed = 150; // Slower start speed
-        // PASTE YOUR CORRECT LOGO URL HERE. Example: https://i.imgur.com/your-logo.png
-        const LOGO_URL = "https://images.squarespace-cdn.com/content/v1/613789a32c183f627fde9bea/d40bfa39-bc30-4566-9cfa-3abd53d4798f/Artboard+1+copy.png?format=2500w"; 
-        const prizeSizeFactor = 3; // Set to 3 for a 3x3 area (9 squares total)
         
-        // --- GAME STATE ---
-        let snake = [];
-        let velocityX = 1;
-        let velocityY = 0;
-        let prize = {}; // Now includes prize.fadeAlpha
-        let score = 0;
-        let gameSpeed = initialSpeed;
-        let isPlaying = false;
-        let gameInterval;
-        let nextDirection = { x: 1, y: 0 };
-        let isGamePaused = false;
-        let assetsLoaded = false;
-        let isInputProcessed = false; // Input buffer flag
-        let isMaximized = false; // Maximize state flag
-        let particles = []; // Array to hold individual particles
-
-        const prizeImage = new Image();
-        prizeImage.onload = () => {
-            assetsLoaded = true;
-            // Also update the preview image source on successful load
-            document.getElementById('logo-preview').src = LOGO_URL;
-            initializeGameSize(); 
-            resetGame();
-            drawGame();
-        };
-        prizeImage.onerror = () => {
-            // Fallback for when image loading fails
-            assetsLoaded = false;
-            console.error("Failed to load custom logo. Using default pink square.");
-            initializeGameSize(); 
-            resetGame();
-            drawGame();
-        };
-
-        // --- INITIALIZATION & SIZING ---
-        function initializeGameSize() {
-            let containerWidth;
-            
-            if (isMaximized) {
-                // Determine available space in the fixed maximized container
-                const availableWidth = window.innerWidth;
-                const availableHeight = window.innerHeight;
-
-                // Maximize the canvas size based on the wrapper's max constraints (500px or 90% view)
-                const targetWrapperWidth = Math.min(availableWidth * 0.9, 500);
-                
-                // Calculate size based on the target wrapper, adjusting for control space (approx 150px needed below)
-                const maxCanvasSize = Math.min(targetWrapperWidth, availableHeight - 150);
-
-                containerWidth = maxCanvasSize;
-                
-            } else {
-                // Normal mode, use the wrapper's client width (max 450px)
-                const wrapper = document.getElementById('main-wrapper');
-                // Use clientWidth - 16 for padding/margins
-                containerWidth = wrapper.clientWidth > 16 ? wrapper.clientWidth - 16 : 300; 
-            }
-
-            // Ensure width is a multiple of tileCount for clean drawing
-            containerWidth = Math.floor(containerWidth / tileCount) * tileCount;
-
-            canvas.width = containerWidth;
-            canvas.height = containerWidth; // Always a perfect square
-            gridSize = canvas.width / tileCount;
-        }
-
-        // --- GAME LOGIC FUNCTIONS ---
-        function resetGame() {
-            snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
-            velocityX = 1;
-            velocityY = 0;
-            score = 0;
-            gameSpeed = initialSpeed;
-            isGamePaused = false;
-            scoreDisplay.textContent = 'Score: 0';
-            speedDisplay.textContent = 'Speed: 1x';
-            messageBox.style.display = 'none';
-            particles = []; // Clear any existing particles
-            placePrize();
-        }
-
-        // --- PARTICLE CLASS (for Asteroids-style destruction) ---
-        class Particle {
-            constructor(x, y, vx, vy, color, size, duration) {
-                this.x = x;
-                this.y = y;
-                this.vx = vx;
-                this.vy = vy;
-                this.color = color;
-                this.size = size; // Can be width or radius
-                this.alpha = 1;
-                this.life = duration; // frames
-                this.initialLife = duration;
-                this.type = Math.random() < 0.5 ? 'rect' : 'line'; // Randomly rect or line
-                this.rotation = Math.random() * Math.PI * 2; // Initial rotation
-                this.rotationSpeed = (Math.random() - 0.5) * 0.4; // Increased rotation speed
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha = this.life / this.initialLife;
-                this.life--;
-                this.rotation += this.rotationSpeed;
-            }
-
-            draw() {
-                if (this.life <= 0) return;
-
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.rotation);
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                ctx.lineWidth = 1;
-
-                if (this.type === 'rect') {
-                    ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
-                } else { // 'line'
-                    ctx.beginPath();
-                    ctx.moveTo(-this.size / 2, 0);
-                    ctx.lineTo(this.size / 2, 0);
-                    ctx.stroke();
-                }
-                ctx.restore();
-            }
-        }
-
-        function gameLoop() {
-            if (isGamePaused) {
-                gameInterval = setTimeout(gameLoop, gameSpeed);
-                return;
-            }
-            
-            isInputProcessed = false; 
-
-            velocityX = nextDirection.x;
-            velocityY = nextDirection.y;
-            const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
-
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                endGame();
-                return;
-            }
-
-            for (let i = 1; i < snake.length; i++) {
-                if (head.x === snake[i].x && head.y === snake[i].y) {
-                    endGame();
-                    return;
-                }
-            }
-
-            snake.unshift(head);
-
-            // --- UPDATE PARTICLES ---
-            particles = particles.filter(p => p.life > 0); // Remove faded particles
-            particles.forEach(p => p.update());
-
-            // --- FADE LOGO LOGIC (after prize is collected) ---
-            if (prize.collected) {
-                prize.fadeAlpha -= 0.4; // INCREASED: Logo disappears faster (0.4 vs 0.25)
-                if (prize.fadeAlpha <= 0) {
-                    // Logo completely faded, place a new one
-                    prize.collected = false;
-                    placePrize();
-                }
-            }
-
-
-            // --- COLLISION CHECK & SCORING ---
-            if (!prize.collected && // Only check if prize is not already collected/fading
-                head.x >= prize.x && head.x < prize.x + prizeSizeFactor &&
-                head.y >= prize.y && head.y < prize.y + prizeSizeFactor) {
-                
-                // --- START FADE & PARTICLES EFFECT ---
-                prize.collected = true; // Mark prize as collected
-                prize.fadeAlpha = 1;    // Start fading from full opacity
-                
-                // Create particles
-                const centerX = prize.x * gridSize + (gridSize * prizeSizeFactor / 2);
-                const centerY = prize.y * gridSize + (gridSize * prizeSizeFactor / 2);
-                const numParticles = 20; 
-                for (let i = 0; i < numParticles; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = (Math.random() * 3) + 1.0; // INCREASED: Faster initial speed
-                    const size = (Math.random() * 8) + 2; 
-                    const velocityX = Math.cos(angle) * speed;
-                    const velocityY = Math.sin(angle) * speed + (Math.random() * 0.3); 
-                    particles.push(new Particle(centerX, centerY, velocityX, velocityY, {r: 255, g: 255, b: 255}, size, 5 + Math.random() * 7)); // DECREASED: Shorter life (max 12 frames)
-                }
-                // --- END FADE & PARTICLES EFFECT ---
-
-                score++;
-                scoreDisplay.textContent = `Score: ${score}`;
-                
-                if (score % 3 === 0 && gameSpeed > 50) {
-                    gameSpeed -= 5;
-                    clearInterval(gameInterval);
-                    gameInterval = setTimeout(gameLoop, gameSpeed); 
-                    speedDisplay.textContent = `Speed: x${(initialSpeed / gameSpeed).toFixed(1)}`;
-                    return;
-                }
-                // Don't place a new prize immediately, wait for fade to finish
-            } else {
-                snake.pop();
-            }
-
-            drawGame();
-            gameInterval = setTimeout(gameLoop, gameSpeed);
-        }
-
-        function drawGame() {
-            ctx.fillStyle = '#333333';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // --- DRAW PRIZE (with fading effect) ---
-            if (!prize.collected || prize.fadeAlpha > 0) { // Draw if not collected OR if fading
-                if (assetsLoaded && prizeImage.complete && prizeImage.naturalHeight !== 0) {
-                    ctx.save();
-                    ctx.globalAlpha = prize.fadeAlpha !== undefined ? prize.fadeAlpha : 1;
-                    ctx.drawImage(prizeImage, prize.x * gridSize, prize.y * gridSize, gridSize * prizeSizeFactor, gridSize * prizeSizeFactor);
-                    ctx.restore();
-                } else {
-                    // Draw fallback pink square (also fades)
-                    ctx.fillStyle = `rgba(255, 105, 180, ${prize.fadeAlpha !== undefined ? prize.fadeAlpha : 1})`;
-                    ctx.fillRect(prize.x * gridSize, prize.y * gridSize, gridSize * prizeSizeFactor, gridSize * prizeSizeFactor);
-                }
-            }
-
-            // --- DRAW PARTICLES ---
-            particles.forEach(p => p.draw());
-
-
-            snake.forEach((segment, index) => {
-                ctx.fillStyle = index === 0 ? '#ff69b4' : 'white';
-                ctx.beginPath();
-                ctx.roundRect(segment.x * gridSize, segment.y * gridSize, gridSize - 1, gridSize - 1, 3);
-                ctx.fill();
-            });
-        }
-
-        function placePrize() {
-            let newX, newY, onSnake;
-            let collisionBuffer = prizeSizeFactor - 1; 
-            do {
-                // Ensure prize spawn considers its larger size (cannot spawn near right/bottom edges)
-                newX = Math.floor(Math.random() * (tileCount - collisionBuffer));
-                newY = Math.floor(Math.random() * (tileCount - collisionBuffer));
-                
-                // Check for collision with snake
-                onSnake = false;
-                for (let i = 0; i < snake.length; i++) {
-                    // Check if any part of the prize (considering its size) overlaps with any snake segment
-                    if (snake[i].x >= newX && snake[i].x < newX + prizeSizeFactor &&
-                        snake[i].y >= newY && snake[i].y < newY + prizeSizeFactor) {
-                        onSnake = true;
-                        break;
-                    }
-                }
-            } while (onSnake);
-            prize = { x: newX, y: newY, collected: false, fadeAlpha: 1 }; // Reset fadeAlpha when new prize placed
-        }
-
-        function endGame() {
-            isPlaying = false;
-            clearTimeout(gameInterval); 
-            
-            modalScore.textContent = score;
-            messageBox.style.display = 'flex';
-            
-            let rewardText;
-            if (score >= 10) {
-                rewardText = "🎉 GRAND PRIZE UNLOCKED! You earned a 20% OFF coupon!";
-            } else if (score >= 5) {
-                rewardText = "🎁 GOOD RUN! You earned Free Shipping on your next order!";
-            } else {
-                rewardText = "Better luck next time! Play again to beat your best score!";
-            }
-            rewardMessage.textContent = rewardText;
-
-            startButton.style.display = 'inline-block';
-            pauseButton.style.display = 'none';
-        }
-
-        // --- UPDATED MAXIMIZE TOGGLE (Full-Screen API) ---
+        // NATIVE FULL-SCREEN INTEGRATION
         function toggleMaximize() {
-            const wrapper = mainWrapper;
-
             if (!document.fullscreenElement) {
-                // Attempt to enter browser-native full screen
-                if (wrapper.requestFullscreen) {
-                    wrapper.requestFullscreen().catch(err => {
-                        console.log("Native full-screen denied, using CSS fallback.");
-                        fallbackMaximize();
-                    });
-                } else {
-                    fallbackMaximize();
-                }
+                mainWrapper.requestFullscreen().catch(err => fallbackMaximize());
             } else {
-                // Exit full screen
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                document.exitFullscreen();
             }
         }
 
-        // Fallback logic for when native full-screen is blocked
         function fallbackMaximize() {
-            isMaximized = !isMaximized;
-            if (isMaximized) {
-                mainWrapper.classList.add('maximized-game');
-                maximizeButton.textContent = 'Restore';
-                document.body.style.overflow = 'hidden';
-            } else {
-                mainWrapper.classList.remove('maximized-game');
-                maximizeButton.textContent = 'Maximize';
-                document.body.style.overflow = 'auto';
-            }
-            initializeGameSize();
-            drawGame();
+            const isMaximized = mainWrapper.classList.toggle('maximized-game');
+            maximizeButton.textContent = isMaximized ? 'Exit Full Screen' : 'Maximize';
+            document.body.style.overflow = isMaximized ? 'hidden' : 'auto';
         }
 
-        // Listen for browser-native Fullscreen changes (handles Esc key)
         document.addEventListener("fullscreenchange", () => {
-            if (!document.fullscreenElement) {
-                // If exited via Esc key, reset the UI state
-                mainWrapper.classList.remove('maximized-game');
-                maximizeButton.textContent = 'Maximize';
-                document.body.style.overflow = 'auto';
-                isMaximized = false;
-            } else {
-                // If entered successfully, update UI
-                mainWrapper.classList.add('maximized-game');
-                maximizeButton.textContent = 'Restore';
-                document.body.style.overflow = 'hidden';
-                isMaximized = true;
-            }
-            initializeGameSize();
-            drawGame();
+            const isFS = !!document.fullscreenElement;
+            mainWrapper.classList.toggle('maximized-game', isFS);
+            document.body.classList.toggle('fullscreen-mode', isFS);
+            maximizeButton.textContent = isFS ? 'Exit Full Screen' : 'Maximize';
         });
 
-        // --- INPUT HANDLERS & BINDINGS ---
-        function updateDirection(newVX, newVY) {
-            if (!isPlaying || isGamePaused) return;
-            
-            if (isInputProcessed) return;
-
-            if ( (newVX !== 0 && newVX === -nextDirection.x) || (newVY !== 0 && newVY === -nextDirection.y) ) {
-                return;
-            }
-
-            if (newVX !== nextDirection.x || newVY !== nextDirection.y) {
-                nextDirection = { x: newVX, y: newVY };
-                isInputProcessed = true; 
-            }
-        }
-
-        // Keyboard Input (Desktop Fix: Prevent scrolling)
-        document.addEventListener('keydown', (e) => {
-            const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 's', 'a', 'd'];
-            if (allowedKeys.includes(e.key)) {
-                if (isPlaying && !isGamePaused) {
-                    e.preventDefault(); // STOP PAGE SCROLLING
-                }
-            }
-
-            switch (e.key) {
-                case 'ArrowUp': case 'w': updateDirection(0, -1); break;
-                case 'ArrowDown': case 's': updateDirection(0, 1); break;
-                case 'ArrowLeft': case 'a': updateDirection(-1, 0); break;
-                case 'ArrowRight': case 'd': updateDirection(1, 0); break;
-            }
-        });
-
-        // Touch Feedback Logic
-        function addButtonFeedback(button) {
-            const setActive = () => { button.classList.add('button-active'); };
-            const removeActive = () => { setTimeout(() => { button.classList.remove('button-active'); }, 80); };
-            
-            button.addEventListener('mousedown', setActive);
-            button.addEventListener('mouseup', removeActive);
-            button.addEventListener('touchstart', setActive, {passive: true});
-            button.addEventListener('touchend', removeActive);
-            button.addEventListener('touchcancel', removeActive);
-        }
-        
-        [upBtn, downBtn, leftBtn, rightBtn, startButton, pauseButton, playAgainBtn, maximizeButton].forEach(addButtonFeedback);
-        
-        // Mobile Touch Events using updateDirection
-        upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, -1); }, {passive: false});
-        downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, 1); }, {passive: false});
-        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(-1, 0); }, {passive: false});
-        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(1, 0); }, {passive: false});
-
-        // Game Control Buttons
-        startButton.addEventListener('click', () => {
-            if (!isPlaying) {
-                isPlaying = true;
-                resetGame();
-                startButton.style.display = 'none';
-                pauseButton.style.display = 'inline-block';
-                gameLoop(); 
-            }
-        });
-
-        pauseButton.addEventListener('click', () => {
-            if (isPlaying) {
-                isGamePaused = !isGamePaused;
-                pauseButton.textContent = isGamePaused ? 'Resume' : 'Pause';
-                if (!isGamePaused) {
-                    gameLoop(); 
-                }
-            }
-        });
-        
         maximizeButton.addEventListener('click', toggleMaximize);
-
-        playAgainBtn.addEventListener('click', () => {
-            messageBox.style.display = 'none';
-            resetGame();
-            drawGame();
-        });
-
-        // Initial Load and Resize
-        window.addEventListener('load', () => {
-            prizeImage.src = LOGO_URL; 
-            // Also set the preview image source on load
-            // IMPORTANT: If this img element is causing layout issues, consider removing it
-            document.getElementById('logo-preview').src = LOGO_URL; 
-            initializeGameSize();
-        });
-        window.addEventListener('resize', () => {
-            initializeGameSize();
-            drawGame();
-        });
         
+        // --- Add your existing game logic here ---
     </script>
 </body>
 </html>
