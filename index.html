@@ -10,86 +10,59 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center; /* Center vertically inside the bounding box */
             min-height: 100vh;
             margin: 0;
-            padding-top: 10px;
+            padding: 0;
             background-color: #111111;
             color: #ffffff;
             font-family: 'Arial', sans-serif;
-            text-align: center;
-            transition: background-color 0.3s ease;
-        }
-
-        .fullscreen-mode {
-            background-color: #000000 !important;
-            padding-top: 0 !important;
+            overflow: hidden; /* Prevents unwanted frame scrolling */
         }
 
         #main-wrapper {
-            width: 95%;
-            max-width: 450px;
+            width: 100%;
+            max-width: 450px; /* Safely clamps layout size on desktop screens */
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0 auto; 
-            overflow: hidden; 
-            z-index: 100; 
-            transition: all 0.3s ease;
-        }
-        
-        /* --- MAXIMIZED VIEW STATE (Fullscreen effect) --- */
-        .maximized-game {
-            position: fixed !important;
-            top: 0; left: 0;
-            width: 100vw !important;
-            height: 100vh !important; 
-            height: 100dvh !important; 
-            background-color: #111111;
-            display: flex;
             justify-content: center;
-            align-items: center; 
-            z-index: 1000;
-            max-width: 100vw !important; 
-            max-height: 100dvh !important; 
+            margin: 0 auto; 
+            padding: 10px;
+            box-sizing: border-box;
         }
 
-        /* FIXED: Hide the header on BOTH native full-screen and maximized CSS views */
-        .maximized-game h1, 
-        .fullscreen-mode h1 { 
-            display: none !important; 
-        }
-
-        .maximized-game #game-container {
-            flex-grow: 0;
-            margin: 10px;
-            max-width: 95%;
-            max-height: 95%;
-        }
-
+        /* Game Board (Canvas) Styling */
         #game-container {
             width: 100%;
             border: 8px solid #ff69b4;
             border-radius: 10px;
             box-shadow: 0 0 25px rgba(255, 105, 180, 0.7);
-            margin: 15px 0;
+            margin: 5px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: border-color 0.1s ease-out, box-shadow 0.1s ease-out;
+            box-sizing: border-box;
         }
 
-        canvas { display: block; background-color: #333333; }
+        canvas { 
+            display: block; 
+            background-color: #333333; 
+            max-width: 100%; /* Keeps canvas inside mobile viewport widths */
+            height: auto;
+        }
         
         #game-info {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            padding: 10px 0;
+            padding: 8px 5px;
             font-size: 1.2em;
+            box-sizing: border-box;
         }
         
-        .control-buttons { margin-top: 15px; }
+        /* Start Button Styling */
+        .control-buttons { margin-top: 10px; }
         .control-buttons button, #mobile-controls button, #message-box button {
             background-color: #ff69b4;
             color: #111111;
@@ -108,18 +81,19 @@
             color: #ff69b4 !important;
         }
 
+        /* Mobile D-Pad Styling */
         #mobile-controls {
             display: grid;
             grid-template-areas: ". up ." "left center right" ". down .";
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            width: 180px; 
-            margin-top: 20px;
+            gap: 8px;
+            width: 160px; 
+            margin-top: 10px;
             touch-action: manipulation; 
         }
         #mobile-controls button {
             width: 100%;
-            height: 40px;
+            height: 38px;
             padding: 0;
             margin: 0;
             font-size: 1.1em; 
@@ -127,6 +101,7 @@
             -webkit-user-select: none;
         }
 
+        /* Game Over Modal Styling */
         #message-box {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0; 
@@ -147,19 +122,16 @@
             text-align: center;
         }
 
-        @media (max-width: 600px) {
-            .desktop-instructions { display: none; }
-            #main-wrapper { max-width: 320px; margin: 5px auto; }
-            #modal-content { max-width: 90%; }
+        /* Media queries handle smaller screen heights on mobile */
+        @media (max-height: 650px) {
+            #mobile-controls { margin-top: 5px; }
+            #game-container { margin: 5px 0; }
         }
     </style>
 </head>
 <body>
     
     <div id="main-wrapper">
-        <h1>The PRIZE PATH Game!</h1>
-        <p class="desktop-instructions">Use arrow keys or WASD to navigate and collect the Prize Tokens (<img id="logo-preview" style="height: 20px; vertical-align: middle;" src="https://images.squarespace-cdn.com/content/v1/613789a32c183f627fde9bea/d40bfa39-bc30-4566-9cfa-3abd53d4798f/Artboard+1+copy.png?format=2500w" alt="Logo">)!</p>
-
         <div id="game-container">
             <div id="game-info">
                 <span id="score-display">Score: 0</span>
@@ -178,8 +150,6 @@
         
         <div class="control-buttons">
             <button id="start-button">Start Game</button>
-            <button id="pause-button" style="display:none;">Pause</button>
-            <button id="maximize-button">Maximize</button>
         </div>
     </div>
 
@@ -200,8 +170,6 @@
             const scoreDisplay = document.getElementById('score-display');
             const speedDisplay = document.getElementById('speed-display');
             const startButton = document.getElementById('start-button');
-            const pauseButton = document.getElementById('pause-button');
-            const maximizeButton = document.getElementById('maximize-button');
             const upBtn = document.getElementById('up-btn');
             const downBtn = document.getElementById('down-btn');
             const leftBtn = document.getElementById('left-btn');
@@ -230,14 +198,11 @@
             let isGamePaused = false;
             let assetsLoaded = false;
             let isInputProcessed = false; 
-            let isMaximized = false; 
             let particles = []; 
 
             const prizeImage = new Image();
             prizeImage.onload = () => {
                 assetsLoaded = true;
-                const preview = document.getElementById('logo-preview');
-                if(preview) preview.src = LOGO_URL;
                 initializeGameSize(); 
                 resetGame();
                 drawGame();
@@ -250,16 +215,15 @@
             };
 
             function initializeGameSize() {
-                let containerWidth;
-                if (isMaximized) {
-                    const availableWidth = window.innerWidth;
-                    const availableHeight = window.innerHeight;
-                    const targetWrapperWidth = Math.min(availableWidth * 0.9, 500);
-                    const maxCanvasSize = Math.min(targetWrapperWidth, availableHeight - 150);
-                    containerWidth = maxCanvasSize;
-                } else {
-                    containerWidth = mainWrapper.clientWidth > 16 ? mainWrapper.clientWidth - 16 : 300; 
+                // Sizing adapts smoothly to parent boundaries
+                let containerWidth = mainWrapper.clientWidth > 16 ? mainWrapper.clientWidth - 16 : 300; 
+                
+                // Secondary check ensures it fits nicely inside mobile heights
+                const availableHeight = window.innerHeight - 150; 
+                if (containerWidth > availableHeight) {
+                    containerWidth = availableHeight;
                 }
+
                 containerWidth = Math.floor(containerWidth / tileCount) * tileCount;
                 canvas.width = containerWidth;
                 canvas.height = containerWidth;
@@ -417,42 +381,10 @@
                 else rewardText = "Better luck next time! Play again to beat your best score!";
                 rewardMessage.textContent = rewardText;
                 startButton.style.display = 'inline-block';
-                pauseButton.style.display = 'none';
             }
-
-            function toggleMaximize() {
-                if (!document.fullscreenElement) {
-                    if (mainWrapper.requestFullscreen) {
-                        mainWrapper.requestFullscreen().catch(err => fallbackMaximize());
-                    } else {
-                        fallbackMaximize();
-                    }
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                }
-            }
-
-            function fallbackMaximize() {
-                isMaximized = !isMaximized;
-                mainWrapper.classList.toggle('maximized-game', isMaximized);
-                // FIXED: Hand a body state helper to clear the view header when CSS maximize triggers
-                document.body.classList.toggle('fullscreen-mode', isMaximized);
-                maximizeButton.textContent = isMaximized ? 'Exit Full Screen' : 'Maximize';
-                document.body.style.overflow = isMaximized ? 'hidden' : 'auto';
-                initializeGameSize(); drawGame();
-            }
-
-            document.addEventListener("fullscreenchange", () => {
-                const isFS = !!document.fullscreenElement;
-                mainWrapper.classList.toggle('maximized-game', isFS);
-                document.body.classList.toggle('fullscreen-mode', isFS);
-                maximizeButton.textContent = isFS ? 'Exit Full Screen' : 'Maximize';
-                isMaximized = isFS;
-                initializeGameSize(); drawGame();
-            });
 
             function updateDirection(newVX, newVY) {
-                if (!isPlaying || isGamePaused) return;
+                if (!isPlaying) return;
                 if (isInputProcessed) return;
                 if ( (newVX !== 0 && newVX === -nextDirection.x) || (newVY !== 0 && newVY === -nextDirection.y) ) return;
                 if (newVX !== nextDirection.x || newVY !== nextDirection.y) {
@@ -463,7 +395,7 @@
 
             document.addEventListener('keydown', (e) => {
                 const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 's', 'a', 'd'];
-                if (allowedKeys.includes(e.key) && isPlaying && !isGamePaused) e.preventDefault(); 
+                if (allowedKeys.includes(e.key) && isPlaying) e.preventDefault(); 
                 switch (e.key) {
                     case 'ArrowUp': case 'w': updateDirection(0, -1); break;
                     case 'ArrowDown': case 's': updateDirection(0, 1); break;
@@ -482,7 +414,7 @@
                 button.addEventListener('touchcancel', removeActive);
             }
             
-            [upBtn, downBtn, leftBtn, rightBtn, startButton, pauseButton, playAgainBtn, maximizeButton].forEach(addButtonFeedback);
+            [upBtn, downBtn, leftBtn, rightBtn, startButton, playAgainBtn].forEach(addButtonFeedback);
             
             const triggerUp = (e) => { e.preventDefault(); updateDirection(0, -1); };
             const triggerDown = (e) => { e.preventDefault(); updateDirection(0, 1); };
@@ -499,20 +431,10 @@
                     isPlaying = true;
                     resetGame();
                     startButton.style.display = 'none';
-                    pauseButton.style.display = 'inline-block';
                     gameLoop(); 
                 }
             });
 
-            pauseButton.addEventListener('click', () => {
-                if (isPlaying) {
-                    isGamePaused = !isGamePaused;
-                    pauseButton.textContent = isGamePaused ? 'Resume' : 'Pause';
-                    if (!isGamePaused) gameLoop(); 
-                }
-            });
-            
-            maximizeButton.addEventListener('click', toggleMaximize);
             playAgainBtn.addEventListener('click', () => {
                 messageBox.style.display = 'none';
                 resetGame();
