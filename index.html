@@ -19,10 +19,8 @@
             font-family: 'Arial', sans-serif;
             text-align: center;
             transition: background-color 0.3s ease;
-            /* FIXED: Removed body-wide touch-action lock so mobile users can scroll the page normally */
         }
 
-        /* IMMERSIVE FULL-SCREEN MODE */
         .fullscreen-mode {
             background-color: #000000 !important;
             padding-top: 0 !important;
@@ -40,7 +38,6 @@
             transition: all 0.3s ease;
         }
         
-        /* --- MAXIMIZED VIEW STATE (Fullscreen effect) --- */
         .maximized-game {
             position: fixed !important;
             top: 0; left: 0;
@@ -65,7 +62,6 @@
             max-height: 95%;
         }
 
-        /* Game Board (Canvas) Styling */
         #game-container {
             width: 100%;
             border: 8px solid #ff69b4;
@@ -88,7 +84,6 @@
             font-size: 1.2em;
         }
         
-        /* --- General Button Styling --- */
         .control-buttons { margin-top: 15px; }
         .control-buttons button, #mobile-controls button, #message-box button {
             background-color: #ff69b4;
@@ -108,7 +103,6 @@
             color: #ff69b4 !important;
         }
 
-        /* --- Mobile D-Pad Styling --- */
         #mobile-controls {
             display: grid;
             grid-template-areas: ". up ." "left center right" ". down .";
@@ -116,7 +110,7 @@
             gap: 10px;
             width: 180px; 
             margin-top: 20px;
-            touch-action: manipulation; /* FIXED: Allows tapping arrow keys without locking page scrolling */
+            touch-action: manipulation; 
         }
         #mobile-controls button {
             width: 100%;
@@ -128,7 +122,6 @@
             -webkit-user-select: none;
         }
 
-        /* --- MESSAGE BOX / MODAL STYLING --- */
         #message-box {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0; 
@@ -246,7 +239,6 @@
             };
             prizeImage.onerror = () => {
                 assetsLoaded = false;
-                console.error("Failed to load custom logo. Using default pink square.");
                 initializeGameSize(); 
                 resetGame();
                 drawGame();
@@ -485,7 +477,6 @@
             
             [upBtn, downBtn, leftBtn, rightBtn, startButton, pauseButton, playAgainBtn, maximizeButton].forEach(addButtonFeedback);
             
-            // FIXED: Added native 'click' handlers alongside touchstart so arrow keys respond to desktop mouse clicks perfectly
             const triggerUp = (e) => { e.preventDefault(); updateDirection(0, -1); };
             const triggerDown = (e) => { e.preventDefault(); updateDirection(0, 1); };
             const triggerLeft = (e) => { e.preventDefault(); updateDirection(-1, 0); };
@@ -523,6 +514,14 @@
 
             window.addEventListener('resize', () => {
                 initializeGameSize(); drawGame();
+            });
+
+            // FIXED: Listen to messaging events to force a clean frame render pass when hidden panels transition to active views
+            window.addEventListener("message", (e) => {
+                if (e.data === "force-modal-refresh") {
+                    initializeGameSize();
+                    drawGame();
+                }
             });
 
             prizeImage.src = LOGO_URL; 
