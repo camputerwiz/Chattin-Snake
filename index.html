@@ -19,7 +19,7 @@
             font-family: 'Arial', sans-serif;
             text-align: center;
             transition: background-color 0.3s ease;
-            touch-action: none; /* Prevents pull-to-refresh on mobile */
+            /* FIXED: Removed body-wide touch-action lock so mobile users can scroll the page normally */
         }
 
         /* IMMERSIVE FULL-SCREEN MODE */
@@ -45,8 +45,8 @@
             position: fixed !important;
             top: 0; left: 0;
             width: 100vw !important;
-            height: 100vh !important; /* Fallback */
-            height: 100dvh !important; /* MOBILE FIX 2: Dynamic Viewport Height for iOS Safari */
+            height: 100vh !important; 
+            height: 100dvh !important; 
             background-color: #111111;
             display: flex;
             justify-content: center;
@@ -116,6 +116,7 @@
             gap: 10px;
             width: 180px; 
             margin-top: 20px;
+            touch-action: manipulation; /* FIXED: Allows tapping arrow keys without locking page scrolling */
         }
         #mobile-controls button {
             width: 100%;
@@ -123,7 +124,7 @@
             padding: 0;
             margin: 0;
             font-size: 1.1em; 
-            user-select: none; /* Prevents text highlighting on rapid mobile taps */
+            user-select: none; 
             -webkit-user-select: none;
         }
 
@@ -477,7 +478,6 @@
                 const removeActive = () => { setTimeout(() => { button.classList.remove('button-active'); }, 80); };
                 button.addEventListener('mousedown', setActive);
                 button.addEventListener('mouseup', removeActive);
-                // MOBILE FIX 3: Removed {passive: true} to prevent browser conflicts with game inputs
                 button.addEventListener('touchstart', setActive);
                 button.addEventListener('touchend', removeActive);
                 button.addEventListener('touchcancel', removeActive);
@@ -485,10 +485,16 @@
             
             [upBtn, downBtn, leftBtn, rightBtn, startButton, pauseButton, playAgainBtn, maximizeButton].forEach(addButtonFeedback);
             
-            upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, -1); }, {passive: false});
-            downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(0, 1); }, {passive: false});
-            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(-1, 0); }, {passive: false});
-            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateDirection(1, 0); }, {passive: false});
+            // FIXED: Added native 'click' handlers alongside touchstart so arrow keys respond to desktop mouse clicks perfectly
+            const triggerUp = (e) => { e.preventDefault(); updateDirection(0, -1); };
+            const triggerDown = (e) => { e.preventDefault(); updateDirection(0, 1); };
+            const triggerLeft = (e) => { e.preventDefault(); updateDirection(-1, 0); };
+            const triggerRight = (e) => { e.preventDefault(); updateDirection(1, 0); };
+
+            upBtn.addEventListener('touchstart', triggerUp);   upBtn.addEventListener('click', triggerUp);
+            downBtn.addEventListener('touchstart', triggerDown); downBtn.addEventListener('click', triggerDown);
+            leftBtn.addEventListener('touchstart', triggerLeft); leftBtn.addEventListener('click', triggerLeft);
+            rightBtn.addEventListener('touchstart', triggerRight); rightBtn.addEventListener('click', triggerRight);
 
             startButton.addEventListener('click', () => {
                 if (!isPlaying) {
